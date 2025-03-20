@@ -138,43 +138,44 @@ conR:
 	}
 }
 
-// GetChannels implements Reactor
+// consensusChannels is a pre-allocated list of channel descriptors for the consensus reactor
+var consensusChannels = []*p2p.ChannelDescriptor{
+	{
+		ID:                  StateChannel,      // Used for peer state updates and general state gossip
+		Priority:            6,                 // Medium-high priority for state updates
+		SendQueueCapacity:   100,               // Buffer up to 100 state messages
+		RecvMessageCapacity: maxMsgSize,        // Maximum size of a message
+		MessageType:         &tmcons.Message{}, // Type of message sent on this channel
+	},
+	{
+		ID:                  DataChannel,       // Used for block propagation and catchup
+		Priority:            10,                // Highest priority for block data
+		SendQueueCapacity:   100,               // Buffer up to 100 data messages
+		RecvBufferCapacity:  50 * 4096,         // Large buffer for block parts
+		RecvMessageCapacity: maxMsgSize,        // Maximum size of a message
+		MessageType:         &tmcons.Message{}, // Type of message sent on this channel
+	},
+	{
+		ID:                  VoteChannel,       // Used for vote propagation
+		Priority:            7,                 // High priority for votes
+		SendQueueCapacity:   100,               // Buffer up to 100 vote messages
+		RecvBufferCapacity:  100 * 100,         // Large buffer for votes
+		RecvMessageCapacity: maxMsgSize,        // Maximum size of a message
+		MessageType:         &tmcons.Message{}, // Type of message sent on this channel
+	},
+	{
+		ID:                  VoteSetBitsChannel, // Used for vote set bit propagation
+		Priority:            1,                  // Lower priority for vote set bits
+		SendQueueCapacity:   2,                  // Small buffer for vote set bits
+		RecvBufferCapacity:  1024,               // Moderate buffer for vote set bits
+		RecvMessageCapacity: maxMsgSize,         // Maximum size of a message
+		MessageType:         &tmcons.Message{},  // Type of message sent on this channel
+	},
+}
+
+// GetChannels implements Reactor by returning the list of channel descriptors.
 func (conR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
-	// TODO optimize
-	return []*p2p.ChannelDescriptor{
-		{
-			ID:                  StateChannel,
-			Priority:            6,
-			SendQueueCapacity:   100,
-			RecvMessageCapacity: maxMsgSize,
-			MessageType:         &tmcons.Message{},
-		},
-		{
-			ID: DataChannel, // maybe split between gossiping current block and catchup stuff
-			// once we gossip the whole block there's nothing left to send until next height or round
-			Priority:            10,
-			SendQueueCapacity:   100,
-			RecvBufferCapacity:  50 * 4096,
-			RecvMessageCapacity: maxMsgSize,
-			MessageType:         &tmcons.Message{},
-		},
-		{
-			ID:                  VoteChannel,
-			Priority:            7,
-			SendQueueCapacity:   100,
-			RecvBufferCapacity:  100 * 100,
-			RecvMessageCapacity: maxMsgSize,
-			MessageType:         &tmcons.Message{},
-		},
-		{
-			ID:                  VoteSetBitsChannel,
-			Priority:            1,
-			SendQueueCapacity:   2,
-			RecvBufferCapacity:  1024,
-			RecvMessageCapacity: maxMsgSize,
-			MessageType:         &tmcons.Message{},
-		},
-	}
+	return consensusChannels
 }
 
 // InitPeer implements Reactor by creating a state for the peer.
